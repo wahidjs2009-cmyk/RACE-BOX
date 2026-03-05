@@ -1,1 +1,382 @@
-RACE BOX V4.html
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JavaTech Race Box PRO</title>
+
+<style>
+
+body{
+font-family:Arial;
+background:linear-gradient(180deg,#0b0b0b,#141414);
+color:white;
+text-align:center;
+margin:0;
+padding:10px;
+}
+
+h1{
+color:#00ff95;
+font-size:20px;
+margin:10px 0 15px 0;
+}
+
+.container{
+width:100%;
+max-width:420px;
+margin:auto;
+}
+
+.card{
+background:#1b1b1b;
+border-radius:15px;
+padding:15px;
+margin-bottom:12px;
+box-shadow:0 5px 15px rgba(0,0,0,0.6);
+}
+
+.timer{
+font-size:48px;
+font-weight:bold;
+color:#00ff95;
+}
+
+.speed{
+font-size:26px;
+margin-top:5px;
+font-weight:bold;
+}
+
+.grid{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:8px;
+margin-top:10px;
+}
+
+.dataBox{
+background:#101010;
+padding:10px;
+border-radius:8px;
+}
+
+.label{
+font-size:12px;
+color:#aaa;
+}
+
+.value{
+font-size:18px;
+margin-top:4px;
+}
+
+.buttons{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:10px;
+margin-top:10px;
+}
+
+button{
+font-size:16px;
+padding:12px;
+border:none;
+border-radius:10px;
+cursor:pointer;
+width:100%;
+}
+
+.start{background:#00c853;color:white;}
+.reset{background:#2962ff;color:white;}
+.save{background:#ff9800;color:white;}
+.history{background:#9c27b0;color:white;}
+
+#historyBox{
+margin-top:15px;
+text-align:left;
+font-size:14px;
+}
+
+.historyItem{
+background:#151515;
+padding:10px;
+border-radius:10px;
+margin-bottom:8px;
+}
+
+</style>
+</head>
+
+<body>
+
+<h1>JavaTech Race Box PRO</h1>
+
+<div class="container">
+
+<div class="card">
+
+<div class="timer" id="timer">0.000</div>
+
+<div class="speed">
+<span id="speed">0</span> km/h
+</div>
+
+</div>
+
+<div class="card">
+
+<div class="grid">
+
+<div class="dataBox">
+<div class="label">Distance</div>
+<div class="value"><span id="distance">0</span> m</div>
+</div>
+
+<div class="dataBox">
+<div class="label">Top Speed</div>
+<div class="value"><span id="topspeed">0</span> km/h</div>
+</div>
+
+<div class="dataBox">
+<div class="label">0-60</div>
+<div class="value"><span id="t60">-</span></div>
+</div>
+
+<div class="dataBox">
+<div class="label">0-100</div>
+<div class="value"><span id="t100">-</span></div>
+</div>
+
+<div class="dataBox">
+<div class="label">201m</div>
+<div class="value"><span id="d201">-</span></div>
+</div>
+
+<div class="dataBox">
+<div class="label">402m</div>
+<div class="value"><span id="d402">-</span></div>
+</div>
+
+<div class="dataBox">
+<div class="label">501m</div>
+<div class="value"><span id="d501">-</span></div>
+</div>
+
+</div>
+
+</div>
+
+<div class="buttons">
+<button class="start" onclick="start()">START</button>
+<button class="reset" onclick="reset()">RESET</button>
+<button class="save" onclick="saveRace()">SAVE</button>
+<button class="history" onclick="showHistory()">HISTORY</button>
+</div>
+
+<div id="historyBox"></div>
+
+</div>
+
+<script>
+
+let watchID
+let startTime=null
+let running=false
+
+let lastLat=null
+let lastLon=null
+
+let distance=0
+let topSpeed=0
+
+let t60=false
+let t100=false
+let d201=false
+let d402=false
+let d501=false
+
+
+function gpsDistance(lat1,lon1,lat2,lon2){
+
+let R=6371000
+
+let dLat=(lat2-lat1)*Math.PI/180
+let dLon=(lon2-lon1)*Math.PI/180
+
+let a=Math.sin(dLat/2)*Math.sin(dLat/2)+
+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*
+Math.sin(dLon/2)*Math.sin(dLon/2)
+
+let c=2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a))
+
+return R*c
+
+}
+
+
+function start(){
+
+if(!navigator.geolocation){
+alert("Browser tidak mendukung GPS")
+return
+}
+
+alert("GPS aktif. Mulai bergerak untuk memulai race")
+
+watchID = navigator.geolocation.watchPosition(
+
+pos=>{
+
+let lat=pos.coords.latitude
+let lon=pos.coords.longitude
+let speed=(pos.coords.speed || 0)*3.6
+
+document.getElementById("speed").innerHTML=speed.toFixed(1)
+
+if(speed>5 && !running){
+running=true
+startTime=Date.now()
+}
+
+if(speed>topSpeed){
+topSpeed=speed
+document.getElementById("topspeed").innerHTML=topSpeed.toFixed(1)
+}
+
+if(speed>=60 && !t60 && running){
+t60=true
+document.getElementById("t60").innerHTML=((Date.now()-startTime)/1000).toFixed(3)+" s"
+}
+
+if(speed>=100 && !t100 && running){
+t100=true
+document.getElementById("t100").innerHTML=((Date.now()-startTime)/1000).toFixed(3)+" s"
+}
+
+if(lastLat){
+distance+=gpsDistance(lastLat,lastLon,lat,lon)
+document.getElementById("distance").innerHTML=distance.toFixed(1)
+}
+
+lastLat=lat
+lastLon=lon
+
+if(running){
+document.getElementById("timer").innerHTML=((Date.now()-startTime)/1000).toFixed(3)
+}
+
+if(distance>=201 && !d201){
+d201=true
+document.getElementById("d201").innerHTML=((Date.now()-startTime)/1000).toFixed(3)+" s"
+}
+
+if(distance>=402 && !d402){
+d402=true
+document.getElementById("d402").innerHTML=((Date.now()-startTime)/1000).toFixed(3)+" s"
+}
+
+if(distance>=501 && !d501){
+d501=true
+navigator.geolocation.clearWatch(watchID)
+document.getElementById("d501").innerHTML=((Date.now()-startTime)/1000).toFixed(3)+" s"
+}
+
+},
+
+error=>{
+alert("GPS tidak aktif. Aktifkan lokasi di HP")
+},
+
+{
+enableHighAccuracy:true,
+maximumAge:0,
+timeout:5000
+}
+
+)
+
+}
+
+
+function reset(){
+
+navigator.geolocation.clearWatch(watchID)
+
+startTime=null
+running=false
+lastLat=null
+lastLon=null
+
+distance=0
+topSpeed=0
+
+t60=false
+t100=false
+d201=false
+d402=false
+d501=false
+
+document.getElementById("timer").innerHTML="0.000"
+document.getElementById("distance").innerHTML="0"
+document.getElementById("speed").innerHTML="0"
+document.getElementById("topspeed").innerHTML="0"
+
+document.getElementById("t60").innerHTML="-"
+document.getElementById("t100").innerHTML="-"
+document.getElementById("d201").innerHTML="-"
+document.getElementById("d402").innerHTML="-"
+document.getElementById("d501").innerHTML="-"
+
+}
+
+
+function saveRace(){
+
+let data={
+date:new Date().toLocaleString(),
+t60:document.getElementById("t60").innerText,
+t100:document.getElementById("t100").innerText,
+d402:document.getElementById("d402").innerText,
+topspeed:document.getElementById("topspeed").innerText
+}
+
+let history=JSON.parse(localStorage.getItem("raceHistory"))||[]
+
+history.push(data)
+
+localStorage.setItem("raceHistory",JSON.stringify(history))
+
+alert("Race disimpan")
+
+}
+
+
+function showHistory(){
+
+let history=JSON.parse(localStorage.getItem("raceHistory"))||[]
+
+let html="<h3>Race History</h3>"
+
+history.reverse().forEach(r=>{
+
+html+=`
+<div class="historyItem">
+${r.date}<br>
+0-60 : ${r.t60}<br>
+0-100 : ${r.t100}<br>
+402m : ${r.d402}<br>
+Top Speed : ${r.topspeed} km/h
+</div>
+`
+
+})
+
+document.getElementById("historyBox").innerHTML=html
+
+}
+
+</script>
+
+</body>
+</html>
