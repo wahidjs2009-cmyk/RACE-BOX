@@ -377,6 +377,10 @@ document.getElementById("historyBox").innerHTML=html
 }
 
 </script>
-
+navigator.geolocation.watchPosition(successCallback, errorCallback, {
+    enableHighAccuracy: true, // Wajib agar akurat untuk kecepatan
+    timeout: 5000,
+    maximumAge: 0
+});
 </body>
 </html>
